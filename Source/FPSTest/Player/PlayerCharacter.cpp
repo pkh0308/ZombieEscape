@@ -180,6 +180,11 @@ void APlayerCharacter::Look(const FInputActionValue& InputAction)
 
 void APlayerCharacter::Attack(const FInputActionValue& InputAction)
 {
+	if (IsMeleeAttackDelay)
+	{
+		return;
+	}
+
 	switch (CurHand)
 	{
 	case EHandType::MainWeapon:
@@ -351,6 +356,11 @@ void APlayerCharacter::MeleeAttack(const FInputActionValue& InputAction)
 		return;
 	}
 	IsMeleeAttackDelay = true;
+
+	if (IsFiring)
+	{
+		StopShoot();
+	}
 
 	const FVector ForwardVec = FRotationMatrix(Controller->GetControlRotation()).GetUnitAxis(EAxis::X);
 	FVector AttackCenterVec = GetActorLocation() + FVector(0, 0, 50) + ForwardVec * GetCapsuleComponent()->GetUnscaledCapsuleRadius() * 3.0f;
