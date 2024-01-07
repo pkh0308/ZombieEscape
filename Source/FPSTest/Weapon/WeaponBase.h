@@ -15,12 +15,10 @@ public:
 	AWeaponBase();
 
 protected:
-	UPROPERTY(EditAnywhere)
-	int32 AttackPower;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 AttackPower = 0;
 
-// Getter & Setter
 public:
-	FORCEINLINE void SetAttackPower(int32 NewAttackPower) { AttackPower = NewAttackPower; }
 	FORCEINLINE int32 GetAttackPower() const { return AttackPower; }
 
 };

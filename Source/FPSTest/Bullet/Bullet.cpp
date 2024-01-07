@@ -56,6 +56,6 @@ void ABullet::OnOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherA
 		UE_LOG(LogTemp, Log, TEXT("Bullet Hit: %d"), AttackPower);
 	}
 
-	Destroy();
+	//Destroy();
 }
 

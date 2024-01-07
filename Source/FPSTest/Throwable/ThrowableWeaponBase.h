@@ -29,12 +29,12 @@ protected:
 	UPROPERTY(EditAnywhere)
 	TObjectPtr<class UParticleSystemComponent> ParticleComponent;
 
-	int32 AttackPower = 200;
+	int32 AttackPower = 0;
 	float ExplodeDelay = 3.0f;
 	float ExplodeRadius = 300.0f;
 
 public:
-	void Throw(FVector DirectionVec);
+	void Throw(FVector DirectionVec, int32 NewAttackPower);
 
 	UFUNCTION()
 	void Explode();

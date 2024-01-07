@@ -109,6 +109,26 @@ protected:
 
 	void MeleeAttack(const FInputActionValue& InputAction);
 
+// Weapon
+protected:
+	UPROPERTY()
+	TSubclassOf<class AMainWeapon> MainWeaponClass;
+
+	UPROPERTY()
+	TObjectPtr<class AMainWeapon> MainWeapon;
+
+	UPROPERTY()
+	TSubclassOf<class ASubWeapon> SubWeaponClass;
+
+	UPROPERTY()
+	TObjectPtr<class ASubWeapon> SubWeapon;
+
+// Zombie Reference
+protected:
+	UPROPERTY(BlueprintReadWrite)
+	TSubclassOf<class ACharacter> ZombieClass;
+
+
 // HandType
 protected:
 	EHandType CurHand;
@@ -125,7 +145,7 @@ protected:
 	bool IsZooming = false;
 	float FireDelayTime = 0.12f;
 	float ReloadDelayTime = 1.5f;
-	float MuzzleOffsetYaw = 70.0f;
+	float MuzzleOffsetZ = 70.0f;
 
 	float ZoomInFov = 60.0f;
 	float ZoomOutFov = 90.0f;
@@ -133,12 +153,22 @@ protected:
 	float MoveSpeedInFiring = 350.0f;
 	float MoveSpeedInNormal = 500.0f;
 
+	float CurShootAccurancy = 1.0f;
+	float MaxShootAccurancy = 1.0f;
+	float DeltaShootAccurancy = 0.02f;
+	float ShootAccurancyOffset = 10;
+
 	int32 GetAttackPower();
 
 	void OneShot();
 	void Shoot();
 	void StopShoot();
 	void ReloadComplete();
+
+// Recoil
+protected:
+	float RecoilOffsetInNormal = 0.4f;
+	float RecoilOffsetInZoom = 0.2f;
 
 // Grenade
 protected:

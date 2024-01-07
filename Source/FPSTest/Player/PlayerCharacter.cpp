@@ -12,6 +12,8 @@
 #include "Item/ItemBase.h"
 #include "Throwable/ThrowableWeaponBase.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Weapon/MainWeapon.h"
+#include "Weapon/SubWeapon.h"
 
 APlayerCharacter::APlayerCharacter()
 {
@@ -106,6 +108,25 @@ APlayerCharacter::APlayerCharacter()
 	{
 		GrenadeClass = GrenadeRef.Class;
 	}
+
+	// Weapon Class
+	static ConstructorHelpers::FClassFinder<AMainWeapon> MainWeaponRef(TEXT("/Game/PKH/BP/BP_MainWeapon.BP_MainWeapon_C"));
+	if (MainWeaponRef.Class)
+	{
+		MainWeaponClass = MainWeaponRef.Class;
+	}
+	static ConstructorHelpers::FClassFinder<ASubWeapon> SubWeaponRef(TEXT("/Game/PKH/BP/BP_SubWeapon.BP_SubWeapon_C"));
+	if (SubWeaponRef.Class)
+	{
+		SubWeaponClass = SubWeaponRef.Class;
+	}
+
+	// Zombie Reference
+	static ConstructorHelpers::FClassFinder<ACharacter> ZombieClassRef(TEXT(""));
+	if (ZombieClassRef.Class)
+	{
+		ZombieClass = ZombieClassRef.Class; 
+	}
 }
 
 void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -155,6 +176,18 @@ void APlayerCharacter::BeginPlay()
 	SetCurSubAmmo(MaxSubAmmo);
 
 	CurHand = EHandType::MainWeapon;
+
+	// Weapon Actor
+	FActorSpawnParameters Params;
+	Params.Owner = this;
+	Params.Instigator = GetInstigator();
+	const FVector HandLocation = GetActorLocation();
+	const FRotator HandRotation = FRotator(0, 0, 0);
+
+	MainWeapon = GetWorld()->SpawnActor<AMainWeapon>(MainWeaponClass, HandLocation, HandRotation, Params);
+	MainWeapon->SetActorHiddenInGame(true);
+	SubWeapon = GetWorld()->SpawnActor<ASubWeapon>(SubWeaponClass, HandLocation, HandRotation, Params);
+	SubWeapon->SetActorHiddenInGame(true); 
 }
 
 AMyPlayerController* APlayerCharacter::GetMyController()
@@ -532,11 +565,15 @@ int32 APlayerCharacter::GetAttackPower()
 {
 	if (CurHand == EHandType::MainWeapon)
 	{
-		return 30;
+		return MainWeapon->GetAttackPower();
 	}
 	else if (CurHand == EHandType::SubWeapon)
 	{
-		return 15;
+		return SubWeapon->GetAttackPower();
+	}
+	else if (CurHand == EHandType::Grenade)
+	{
+		return 200;
 	}
 
 	return 0;
@@ -553,7 +590,9 @@ void APlayerCharacter::OneShot()
 		return;
 	}
 
-	const FVector MuzzleLocation = GetActorLocation() + FVector(0, 0, MuzzleOffsetYaw) + (GetActorForwardVector() * (GetCapsuleComponent()->GetUnscaledCapsuleRadius()));
+	float Accurancy = 1 - CurShootAccurancy;
+	FVector MuzzleOffsetVec = FVector(0, FMath::RandRange(-Accurancy, Accurancy) * ShootAccurancyOffset, MuzzleOffsetZ + FMath::RandRange(-Accurancy, Accurancy) * ShootAccurancyOffset);
+	const FVector MuzzleLocation = GetActorLocation() + MuzzleOffsetVec + (GetActorForwardVector() * (GetCapsuleComponent()->GetUnscaledCapsuleRadius()));
 	const FRotator MuzzleRotator = FRotationMatrix::MakeFromX(GetActorForwardVector()).Rotator();
 
 	const FRotator ControllerRotator = Controller->GetControlRotation();
@@ -576,6 +615,17 @@ void APlayerCharacter::OneShot()
 	{
 		SetCurSubAmmo(CurSubAmmo - 1);;
 	}
+
+	// accurancy
+	CurShootAccurancy -= 0.02f;
+
+	// recoil 
+	FVector RecoilVec = FVector::DownVector + FVector(FMath::RandRange(-1.0f, 1.0f), 0, 0);
+	RecoilVec.Normalize();
+	RecoilVec = IsZooming ? RecoilVec * RecoilOffsetInZoom : RecoilVec * RecoilOffsetInNormal;
+
+	AddControllerPitchInput(RecoilVec.Z);
+	AddControllerYawInput(RecoilVec.X);
 }
 
 void APlayerCharacter::Shoot()
@@ -622,6 +672,8 @@ void APlayerCharacter::StopShoot()
 	{
 		GetWorld()->GetTimerManager().ClearTimer(FireHandle);
 	}
+
+	CurShootAccurancy = MaxShootAccurancy;
 }
 
 void APlayerCharacter::ReloadComplete()
@@ -657,7 +709,7 @@ void APlayerCharacter::ThrowGrenade()
 	}
 	IsThrowing = true;
 
-	const FVector MuzzleLocation = GetActorLocation() + FVector(0, 0, MuzzleOffsetYaw) + (GetActorForwardVector() * (GetCapsuleComponent()->GetUnscaledCapsuleRadius()));
+	const FVector MuzzleLocation = GetActorLocation() + FVector(0, 0, MuzzleOffsetZ) + (GetActorForwardVector() * (GetCapsuleComponent()->GetUnscaledCapsuleRadius()));
 	const FRotator MuzzleRotator = FRotationMatrix::MakeFromX(GetActorForwardVector()).Rotator();
 
 	const FRotator ControllerRotator = Controller->GetControlRotation();
@@ -672,7 +724,7 @@ void APlayerCharacter::ThrowGrenade()
 	AThrowableWeaponBase* Throwable = GetWorld()->SpawnActor<AThrowableWeaponBase>(GrenadeClass, MuzzleLocation, MuzzleRotator, Params);
 	if (Throwable)
 	{
-		Throwable->Throw(ThrowDirVec);
+		Throwable->Throw(ThrowDirVec, GetAttackPower());
 	}
 	SetRemainGrenade(RemainGrenade - 1);
 	UE_LOG(LogTemp, Log, TEXT("Grenade: %d"), RemainGrenade);

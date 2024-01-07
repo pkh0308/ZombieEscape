@@ -51,8 +51,9 @@ void AThrowableWeaponBase::BeginPlay()
 	ProjectileComponent->Velocity = FVector::Zero();
 }
 
-void AThrowableWeaponBase::Throw(FVector DirectionVec)
+void AThrowableWeaponBase::Throw(FVector DirectionVec, int32 NewAttackPower)
 {
+	AttackPower = NewAttackPower;
 	ProjectileComponent->Velocity = ProjectileComponent->InitialSpeed * DirectionVec;
 
 	FTimerHandle Handle;
@@ -62,8 +63,11 @@ void AThrowableWeaponBase::Throw(FVector DirectionVec)
 void AThrowableWeaponBase::Explode()
 {
 	TArray<FOverlapResult> OverlapResults;
-	bool IsHit = GetWorld()->OverlapMultiByChannel(OverlapResults, GetActorLocation(), FQuat::Identity, 
-												   ECollisionChannel::ECC_GameTraceChannel14, FCollisionShape::MakeSphere(ExplodeRadius));
+	/*bool IsHit = GetWorld()->OverlapMultiByChannel(OverlapResults, GetActorLocation(), FQuat::Identity, 
+												   ECollisionChannel::ECC_GameTraceChannel14, FCollisionShape::MakeSphere(ExplodeRadius));*/
+
+	bool IsHit = GetWorld()->OverlapMultiByProfile(OverlapResults, GetActorLocation(), FQuat::Identity,
+									               TEXT("Enemy"), FCollisionShape::MakeSphere(ExplodeRadius));
 
 	DrawDebugSphere(GetWorld(), GetActorLocation(), ExplodeRadius, 16, FColor::Red, false, 0.5f);
 	ParticleComponent->SetActive(true);
