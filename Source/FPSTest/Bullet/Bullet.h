@@ -27,9 +27,10 @@ protected:
 	TObjectPtr<class UStaticMeshComponent> Mesh;
 
 	float BulletLifeTime = 3.0f;
+	int32 AttackPower;
 
 public:
-	void Fire(FVector DirectionVec);
+	void Fire(FVector DirectionVec, int32 NewAttackPower);
 
 	UFUNCTION()
 	void OnOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);

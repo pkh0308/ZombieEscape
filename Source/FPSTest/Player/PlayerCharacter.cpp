@@ -15,6 +15,7 @@
 
 APlayerCharacter::APlayerCharacter()
 {
+	// Camera
 	PlayerCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("PlayerCamera"));
 	PlayerCamera->SetupAttachment(RootComponent);
 	PlayerCamera->AddRelativeLocation(FVector(20, 0, 70));
@@ -156,6 +157,12 @@ void APlayerCharacter::BeginPlay()
 	CurHand = EHandType::MainWeapon;
 }
 
+AMyPlayerController* APlayerCharacter::GetMyController()
+{
+	AMyPlayerController* MyController = CastChecked<AMyPlayerController>(GetController());
+	return MyController;
+}
+
 void APlayerCharacter::Move(const FInputActionValue& InputAction)
 {
 	FVector2D InputVec = InputAction.Get<FVector2D>();
@@ -172,6 +179,11 @@ void APlayerCharacter::Move(const FInputActionValue& InputAction)
 
 void APlayerCharacter::Look(const FInputActionValue& InputAction)
 {
+	if (IsDead)
+	{
+		return;
+	}
+
 	FVector2D InputVec = InputAction.Get<FVector2D>();
 
 	AddControllerPitchInput(InputVec.Y);
@@ -180,7 +192,7 @@ void APlayerCharacter::Look(const FInputActionValue& InputAction)
 
 void APlayerCharacter::Attack(const FInputActionValue& InputAction)
 {
-	if (IsMeleeAttackDelay)
+	if (IsMeleeAttackDelay || IsDead)
 	{
 		return;
 	}
@@ -204,6 +216,10 @@ void APlayerCharacter::Attack(const FInputActionValue& InputAction)
 
 void APlayerCharacter::AttackEnd(const FInputActionValue& InputAction)
 {
+	if (IsDead)
+	{
+		return;
+	}
 	if (CurHand != EHandType::MainWeapon)
 	{
 		return;
@@ -216,7 +232,7 @@ void APlayerCharacter::AttackEnd(const FInputActionValue& InputAction)
 
 void APlayerCharacter::Reload(const FInputActionValue& InputAction)
 {
-	if (IsReloading || IsFiring)
+	if (IsReloading || IsFiring || IsDead)
 	{
 		return;
 	}
@@ -247,7 +263,7 @@ void APlayerCharacter::HandChangeToMain(const FInputActionValue& InputAction)
 	{
 		return;
 	}
-	if (IsHealing)
+	if (IsHealing || IsDead)
 	{
 		return;
 	}
@@ -261,7 +277,7 @@ void APlayerCharacter::HandChangeToSub(const FInputActionValue& InputAction)
 	{
 		return;
 	}
-	if (IsHealing)
+	if (IsHealing || IsDead)
 	{
 		return;
 	}
@@ -276,7 +292,7 @@ void APlayerCharacter::HandChangeToGrenade(const FInputActionValue& InputAction)
 	{
 		return;
 	}
-	if (IsHealing)
+	if (IsHealing || IsDead)
 	{
 		return;
 	}
@@ -291,7 +307,7 @@ void APlayerCharacter::HandChangeToHealPack(const FInputActionValue& InputAction
 	{
 		return;
 	}
-	if (IsHealing)
+	if (IsHealing || IsDead)
 	{
 		return;
 	}
@@ -303,6 +319,10 @@ void APlayerCharacter::HandChangeToHealPack(const FInputActionValue& InputAction
 void APlayerCharacter::ZoomIn(const FInputActionValue& InputAction)
 {
 	if (CurHand != EHandType::MainWeapon)
+	{
+		return;
+	}
+	if(IsDead)
 	{
 		return;
 	}
@@ -318,6 +338,10 @@ void APlayerCharacter::ZoomOut(const FInputActionValue& InputAction)
 	{
 		return;
 	}
+	if (IsDead)
+	{
+		return;
+	}
 
 	IsZooming = false;
 	PlayerCamera->FieldOfView = ZoomOutFov;
@@ -326,7 +350,7 @@ void APlayerCharacter::ZoomOut(const FInputActionValue& InputAction)
 
 void APlayerCharacter::Heal(const FInputActionValue& InputAction)
 {
-	if (CurHand != EHandType::HealPack || IsHealing)
+	if (CurHand != EHandType::HealPack || IsHealing || IsDead)
 	{
 		return;
 	}
@@ -351,7 +375,7 @@ void APlayerCharacter::Heal(const FInputActionValue& InputAction)
 
 void APlayerCharacter::MeleeAttack(const FInputActionValue& InputAction)
 {
-	if (IsMeleeAttackDelay)
+	if (IsMeleeAttackDelay || IsDead)
 	{
 		return;
 	}
@@ -363,11 +387,11 @@ void APlayerCharacter::MeleeAttack(const FInputActionValue& InputAction)
 	}
 
 	const FVector ForwardVec = FRotationMatrix(Controller->GetControlRotation()).GetUnitAxis(EAxis::X);
-	FVector AttackCenterVec = GetActorLocation() + FVector(0, 0, 50) + ForwardVec * GetCapsuleComponent()->GetUnscaledCapsuleRadius() * 3.0f;
+	FVector AttackCenterVec = GetActorLocation() + MeleeAttackMuzzleOffset + ForwardVec * GetCapsuleComponent()->GetUnscaledCapsuleRadius() * 3.0f;
 	
 	TArray<FOverlapResult> OverlapResults;
-	bool IsHitted = GetWorld()->OverlapMultiByChannel(OverlapResults, AttackCenterVec, FQuat::Identity,
-													  ECollisionChannel::ECC_GameTraceChannel14, FCollisionShape::MakeSphere(MeleeAttackRadius));
+	bool IsHitted = GetWorld()->OverlapMultiByChannel(OverlapResults, AttackCenterVec, FQuat::MakeFromRotator(GetController()->GetControlRotation()),
+													  ECollisionChannel::ECC_GameTraceChannel14, FCollisionShape::MakeBox(MeleeAttackBoxVec));
 
 	if (IsHitted)
 	{
@@ -383,14 +407,15 @@ void APlayerCharacter::MeleeAttack(const FInputActionValue& InputAction)
 				FVector DirectionVec = TargetLocation - MyLocation;
 				DirectionVec.Normalize();
 				HittedCharacter->LaunchCharacter(DirectionVec * KnuckbackPower, true, false);
-				UE_LOG(LogTemp, Log, TEXT("Direction : %f, %f, %f"), DirectionVec.X, DirectionVec.Y, DirectionVec.Z);
-				DrawDebugSphere(GetWorld(), AttackCenterVec, MeleeAttackRadius, 16, FColor::Green, false, 0.5f);
+				
+				//DrawDebugBox(GetWorld(), AttackCenterVec, MeleeAttackBoxVec, FColor::Green, false, 0.5f);
+				UE_LOG(LogTemp, Log, TEXT("Melee Attack Hit: %d"), MeleeAttackPower);
 			}
 		}
 	}
 	else
 	{
-		DrawDebugSphere(GetWorld(), AttackCenterVec, MeleeAttackRadius, 16, FColor::Red, false, 0.5f);
+		//DrawDebugBox(GetWorld(), AttackCenterVec, MeleeAttackBoxVec, FColor::Red, false, 0.5f);
 	}
 
 	FTimerHandle Handle;
@@ -410,16 +435,6 @@ int APlayerCharacter::SetHp(int32 NewHp)
 	}
 
 	return CurHp;
-}
-
-void APlayerCharacter::OnDie()
-{
-	// Animation
-
-
-	// GameOver UI
-
-
 }
 
 int APlayerCharacter::SetCurMainAmmo(int32 NewCurAmmo)
@@ -467,21 +482,33 @@ int APlayerCharacter::SetRemainHealPack(int32 NewRemainHealPack)
 	return RemainHealPack;
 }
 
+void APlayerCharacter::OnDamaged(int32 InDamage)
+{
+	SetHp(CurHp - InDamage);
+	UE_LOG(LogTemp, Log, TEXT("OnDamaged: %d"), InDamage);
+}
+
+void APlayerCharacter::OnDie()
+{
+	GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_None);
+	IsDead = true;
+
+	// Animation
+
+
+	// GameOver UI
+	GetMyController()->GameOver();
+}
+
 void APlayerCharacter::ShowProcessUI()
 {
-	AMyPlayerController* MyController = Cast<AMyPlayerController>(GetController());
-	if (MyController == nullptr)
-	{
-		return;
-	}
-
 	if (IsReloading)
 	{
-		MyController->ShowProcessUI(FText::FromString(TEXT("Reloading...")), ReloadDelayTime);
+		GetMyController()->ShowProcessUI(FText::FromString(TEXT("Reloading...")), ReloadDelayTime);
 	}
 	else if (IsHealing)
 	{
-		MyController->ShowProcessUI(FText::FromString(TEXT("Healing...")), HealDelayTime);
+		GetMyController()->ShowProcessUI(FText::FromString(TEXT("Healing...")), HealDelayTime);
 	}
 }
 
@@ -499,6 +526,20 @@ void APlayerCharacter::GetItem(FItemData ItemData)
 		SetRemainGrenade(RemainGrenade + ItemData.ItemValue);
 		break;
 	}
+}
+
+int32 APlayerCharacter::GetAttackPower()
+{
+	if (CurHand == EHandType::MainWeapon)
+	{
+		return 30;
+	}
+	else if (CurHand == EHandType::SubWeapon)
+	{
+		return 15;
+	}
+
+	return 0;
 }
 
 void APlayerCharacter::OneShot()
@@ -524,7 +565,7 @@ void APlayerCharacter::OneShot()
 	ABullet* Projectile = GetWorld()->SpawnActor<ABullet>(BulletClass, MuzzleLocation, MuzzleRotator, Params);
 	if (Projectile)
 	{
-		Projectile->Fire(ControllerForwardVec);
+		Projectile->Fire(ControllerForwardVec, GetAttackPower());
 	}
 
 	if (CurHand == EHandType::MainWeapon)

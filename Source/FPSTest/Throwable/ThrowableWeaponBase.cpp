@@ -73,7 +73,11 @@ void AThrowableWeaponBase::Explode()
 		for (int i = 0; i < OverlapResults.Num(); i++)
 		{
 			// Check Zombie
-
+			ACharacter* Zombie = Cast<ACharacter>(OverlapResults[i].GetActor());
+			if (Zombie)
+			{
+				UE_LOG(LogTemp, Log, TEXT("Explode Hit: %d"), AttackPower);
+			}
 		}
 	}
 	

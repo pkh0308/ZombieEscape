@@ -40,6 +40,8 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
+	class AMyPlayerController* GetMyController();
+
 protected:
 	UPROPERTY()
 	TObjectPtr<class UCameraComponent> PlayerCamera;
@@ -131,8 +133,9 @@ protected:
 	float MoveSpeedInFiring = 350.0f;
 	float MoveSpeedInNormal = 500.0f;
 
-	void OneShot();
+	int32 GetAttackPower();
 
+	void OneShot();
 	void Shoot();
 	void StopShoot();
 	void ReloadComplete();
@@ -155,9 +158,11 @@ protected:
 
 // Melee Attack
 protected:
-	float MeleeAttackRadius = 30.0f;
-	float KnuckbackPower = 800.0f;
+	FVector MeleeAttackBoxVec = FVector(50, 80, 35);
+	FVector MeleeAttackMuzzleOffset = FVector(0, 0, 30);
 
+	int32 MeleeAttackPower = 30;
+	float KnuckbackPower = 800.0f;
 	bool IsMeleeAttackDelay = false;
 	float MeleeAttackDelay = 1.0f;
 
@@ -188,6 +193,7 @@ protected:
 	UPROPERTY(EditAnywhere)
 	int32 RemainHealPack = 1;
 
+	bool IsDead = false;
 
 public:
 	UFUNCTION()
@@ -209,6 +215,9 @@ public:
 
 	UFUNCTION()
 	int SetRemainHealPack(int32 NewRemainHealPack);
+
+	UFUNCTION(BlueprintCallable)
+	void OnDamaged(int32 InDamage);
 	
 // Delegate
 public:

@@ -41,15 +41,20 @@ void ABullet::BeginPlay()
 	ProjectileComponent->Velocity = FVector::Zero();
 }
 
-void ABullet::Fire(FVector DirectionVec)
+void ABullet::Fire(FVector DirectionVec, int32 NewAttackPower)
 {
 	ProjectileComponent->Velocity = DirectionVec * ProjectileComponent->InitialSpeed;
+	AttackPower = NewAttackPower;
 }
 
 void ABullet::OnOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
 	// when zombie hit
-
+	ACharacter* Zombie = Cast<ACharacter>(OtherActor);
+	if (Zombie)
+	{
+		UE_LOG(LogTemp, Log, TEXT("Bullet Hit: %d"), AttackPower);
+	}
 
 	Destroy();
 }

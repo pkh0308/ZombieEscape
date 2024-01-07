@@ -29,6 +29,7 @@ protected:
 	UPROPERTY(EditAnywhere)
 	TObjectPtr<class UParticleSystemComponent> ParticleComponent;
 
+	int32 AttackPower = 200;
 	float ExplodeDelay = 3.0f;
 	float ExplodeRadius = 300.0f;
 

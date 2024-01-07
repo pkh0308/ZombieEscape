@@ -6,6 +6,7 @@
 #include "UI/AmmoCountWidget.h"
 #include "UI/CrosshairWidget.h"
 #include "UI/ProcessUIWidget.h"
+#include "UI/GameOverUIWidget.h"
 
 AMyPlayerController::AMyPlayerController()
 {
@@ -31,6 +32,12 @@ AMyPlayerController::AMyPlayerController()
 	if (ProcessUIRef.Class)
 	{
 		ProcessUIClass = ProcessUIRef.Class;
+	}
+
+	static ConstructorHelpers::FClassFinder<UGameOverUIWidget> GameOverUIRef(TEXT("/Game/PKH/UI/WBP_GameOverUI.WBP_GameOverUI_C"));
+	if (GameOverUIRef.Class)
+	{
+		GameOverUIClass = GameOverUIRef.Class;
 	}
 }
 
@@ -65,6 +72,13 @@ void AMyPlayerController::BeginPlay()
 		ProcessUIWidget->AddToViewport();
 		ProcessUIWidget->SetVisibility(ESlateVisibility::Hidden);
 	}
+
+	GameOverUIWidget = CreateWidget<UGameOverUIWidget>(this, GameOverUIClass);
+	if (GameOverUIWidget)
+	{
+		GameOverUIWidget->AddToViewport();
+		GameOverUIWidget->SetVisibility(ESlateVisibility::Hidden);
+	}
 }
 
 void AMyPlayerController::InitWidget(APlayerCharacter* InPlayerCharacter)
@@ -84,4 +98,17 @@ void AMyPlayerController::ShowProcessUI(FText Text, float Time)
 			ProcessUIWidget->SetVisibility(ESlateVisibility::Hidden);
 		}
 	), Time, false);
+}
+
+void AMyPlayerController::GameOver()
+{
+	// Hide some UI
+	if (ProcessUIWidget->GetVisibility() == ESlateVisibility::Visible)
+	{
+		ProcessUIWidget->SetVisibility(ESlateVisibility::Hidden);
+	}
+	CrosshairWidget->SetVisibility(ESlateVisibility::Hidden);
+
+	// Show GameOver UI
+	GameOverUIWidget->SetVisibility(ESlateVisibility::Visible);
 }

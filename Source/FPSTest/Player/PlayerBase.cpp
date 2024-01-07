@@ -15,7 +15,7 @@ APlayerBase::APlayerBase()
 
 	// Capsule
 	GetCapsuleComponent()->InitCapsuleSize(42.0f, 96.0f);
-	GetCapsuleComponent()->SetCollisionProfileName(TEXT("APawn"));
+	GetCapsuleComponent()->SetCollisionProfileName(TEXT("Player"));
 
 	GetCharacterMovement()->bOrientRotationToMovement = false;
 	GetCharacterMovement()->RotationRate = FRotator(0.0f, 500.0f, 0.0f);

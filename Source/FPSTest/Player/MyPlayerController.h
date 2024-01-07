@@ -49,9 +49,18 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TObjectPtr<class UProcessUIWidget> ProcessUIWidget;
 
-// Temp
+	// GameOver UI
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TSubclassOf<class UGameOverUIWidget> GameOverUIClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TObjectPtr<class UGameOverUIWidget> GameOverUIWidget;
+
+
 public:
 	void InitWidget(class APlayerCharacter* InPlayerCharacter);
 
 	void ShowProcessUI(FText Text, float Time);
+
+	void GameOver();
 };
