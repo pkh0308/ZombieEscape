@@ -123,12 +123,6 @@ protected:
 	UPROPERTY()
 	TObjectPtr<class ASubWeapon> SubWeapon;
 
-// Zombie Reference
-protected:
-	UPROPERTY(BlueprintReadWrite)
-	TSubclassOf<class ACharacter> ZombieClass;
-
-
 // HandType
 protected:
 	EHandType CurHand;
@@ -156,7 +150,7 @@ protected:
 	float CurShootAccurancy = 1.0f;
 	float MaxShootAccurancy = 1.0f;
 	float DeltaShootAccurancy = 0.02f;
-	float ShootAccurancyOffset = 10;
+	float ShootAccurancyValue = 1.5;
 
 	int32 GetAttackPower();
 
@@ -191,7 +185,7 @@ protected:
 	FVector MeleeAttackBoxVec = FVector(50, 80, 35);
 	FVector MeleeAttackMuzzleOffset = FVector(0, 0, 30);
 
-	int32 MeleeAttackPower = 30;
+	int32 MeleeAttackPower = 35;
 	float KnuckbackPower = 800.0f;
 	bool IsMeleeAttackDelay = false;
 	float MeleeAttackDelay = 1.0f;

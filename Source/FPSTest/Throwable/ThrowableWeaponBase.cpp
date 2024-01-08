@@ -7,6 +7,7 @@
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "Particles/ParticleSystem.h"
 #include "Particles/ParticleSystemComponent.h"
+#include "Zombie/ZombieBase.h"
 
 // Sets default values
 AThrowableWeaponBase::AThrowableWeaponBase()
@@ -51,20 +52,17 @@ void AThrowableWeaponBase::BeginPlay()
 	ProjectileComponent->Velocity = FVector::Zero();
 }
 
-void AThrowableWeaponBase::Throw(FVector DirectionVec, int32 NewAttackPower)
+void AThrowableWeaponBase::Throw(FVector DirectionVec)
 {
-	AttackPower = NewAttackPower;
 	ProjectileComponent->Velocity = ProjectileComponent->InitialSpeed * DirectionVec;
 
 	FTimerHandle Handle;
-	GetWorld()->GetTimerManager().SetTimer(Handle, this, &AThrowableWeaponBase::Explode, 1.0f, false, ExplodeDelay);
+	GetWorld()->GetTimerManager().SetTimer(Handle, this, &AThrowableWeaponBase::Explode, ExplodeDelay, false);
 }
 
 void AThrowableWeaponBase::Explode()
 {
 	TArray<FOverlapResult> OverlapResults;
-	/*bool IsHit = GetWorld()->OverlapMultiByChannel(OverlapResults, GetActorLocation(), FQuat::Identity, 
-												   ECollisionChannel::ECC_GameTraceChannel14, FCollisionShape::MakeSphere(ExplodeRadius));*/
 
 	bool IsHit = GetWorld()->OverlapMultiByProfile(OverlapResults, GetActorLocation(), FQuat::Identity,
 									               TEXT("Enemy"), FCollisionShape::MakeSphere(ExplodeRadius));
@@ -77,9 +75,10 @@ void AThrowableWeaponBase::Explode()
 		for (int i = 0; i < OverlapResults.Num(); i++)
 		{
 			// Check Zombie
-			ACharacter* Zombie = Cast<ACharacter>(OverlapResults[i].GetActor());
+			AZombieBase* Zombie = Cast<AZombieBase>(OverlapResults[i].GetActor());
 			if (Zombie)
 			{
+				Zombie->OnDamaged(AttackPower);
 				UE_LOG(LogTemp, Log, TEXT("Explode Hit: %d"), AttackPower);
 			}
 		}

@@ -23,6 +23,18 @@ protected:
 	UPROPERTY()
 	TObjectPtr<class UTextBlock> ProcessText;
 
+	UPROPERTY()
+	TObjectPtr<class UProgressBar> ProcessProgressBar;
+
+protected:
+	UFUNCTION()
+	void SetProcess();
+
+	FTimerHandle ProcessHandle;
+
+	float CurProcessTime = 0;
+	float MaxProcessTime = 0;
+
 public:
 	void SetProcessData(FText Text, float Time);
 };

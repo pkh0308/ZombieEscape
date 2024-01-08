@@ -14,6 +14,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Weapon/MainWeapon.h"
 #include "Weapon/SubWeapon.h"
+#include "Zombie/ZombieBase.h"
 
 APlayerCharacter::APlayerCharacter()
 {
@@ -119,13 +120,6 @@ APlayerCharacter::APlayerCharacter()
 	if (SubWeaponRef.Class)
 	{
 		SubWeaponClass = SubWeaponRef.Class;
-	}
-
-	// Zombie Reference
-	static ConstructorHelpers::FClassFinder<ACharacter> ZombieClassRef(TEXT(""));
-	if (ZombieClassRef.Class)
-	{
-		ZombieClass = ZombieClassRef.Class; 
 	}
 }
 
@@ -430,18 +424,19 @@ void APlayerCharacter::MeleeAttack(const FInputActionValue& InputAction)
 	{
 		for (int i = 0; i < OverlapResults.Num(); i++)
 		{
-			ACharacter* HittedCharacter = Cast<ACharacter>(OverlapResults[i].GetActor());
-			if (HittedCharacter)
+			AZombieBase* Zombie = Cast<AZombieBase>(OverlapResults[i].GetActor());
+			if (Zombie)
 			{
 				FVector MyLocation = GetActorLocation();
 				MyLocation.Z = 0;
-				FVector TargetLocation = HittedCharacter->GetActorLocation();
+				FVector TargetLocation = Zombie->GetActorLocation();
 				TargetLocation.Z = 0;
 				FVector DirectionVec = TargetLocation - MyLocation;
 				DirectionVec.Normalize();
-				HittedCharacter->LaunchCharacter(DirectionVec * KnuckbackPower, true, false);
+				Zombie->LaunchCharacter(DirectionVec * KnuckbackPower, true, false);
 				
 				//DrawDebugBox(GetWorld(), AttackCenterVec, MeleeAttackBoxVec, FColor::Green, false, 0.5f);
+				Zombie->OnDamaged(MeleeAttackPower);
 				UE_LOG(LogTemp, Log, TEXT("Melee Attack Hit: %d"), MeleeAttackPower);
 			}
 		}
@@ -571,10 +566,6 @@ int32 APlayerCharacter::GetAttackPower()
 	{
 		return SubWeapon->GetAttackPower();
 	}
-	else if (CurHand == EHandType::Grenade)
-	{
-		return 200;
-	}
 
 	return 0;
 }
@@ -590,21 +581,27 @@ void APlayerCharacter::OneShot()
 		return;
 	}
 
-	float Accurancy = 1 - CurShootAccurancy;
-	FVector MuzzleOffsetVec = FVector(0, FMath::RandRange(-Accurancy, Accurancy) * ShootAccurancyOffset, MuzzleOffsetZ + FMath::RandRange(-Accurancy, Accurancy) * ShootAccurancyOffset);
-	const FVector MuzzleLocation = GetActorLocation() + MuzzleOffsetVec + (GetActorForwardVector() * (GetCapsuleComponent()->GetUnscaledCapsuleRadius()));
+	const FVector MuzzleLocation = GetActorLocation() + FVector(0, 0, MuzzleOffsetZ) + (GetActorForwardVector() * (GetCapsuleComponent()->GetUnscaledCapsuleRadius()));
 	const FRotator MuzzleRotator = FRotationMatrix::MakeFromX(GetActorForwardVector()).Rotator();
 
 	const FRotator ControllerRotator = Controller->GetControlRotation();
 	const FVector ControllerForwardVec = FRotationMatrix(ControllerRotator).GetUnitAxis(EAxis::X);
+	const FVector ControllerRightVec = FRotationMatrix(ControllerRotator).GetUnitAxis(EAxis::Y);
+	const FVector ControllerUpVec = FRotationMatrix(ControllerRotator).GetUnitAxis(EAxis::Z);
 
 	FActorSpawnParameters Params;
 	Params.Owner = this;
 	Params.Instigator = GetInstigator();
+	FVector FireDirectionVec = ControllerForwardVec;
+
+	float AccurancyOffset = 1 - CurShootAccurancy;
+	FireDirectionVec = FireDirectionVec.RotateAngleAxis(FMath::RandRange(-AccurancyOffset, AccurancyOffset) * ShootAccurancyValue, ControllerRightVec);
+	FireDirectionVec = FireDirectionVec.RotateAngleAxis(FMath::RandRange(-AccurancyOffset, AccurancyOffset) * ShootAccurancyValue, ControllerUpVec);
+	
 	ABullet* Projectile = GetWorld()->SpawnActor<ABullet>(BulletClass, MuzzleLocation, MuzzleRotator, Params);
 	if (Projectile)
 	{
-		Projectile->Fire(ControllerForwardVec, GetAttackPower());
+		Projectile->Fire(FireDirectionVec, GetAttackPower());
 	}
 
 	if (CurHand == EHandType::MainWeapon)
@@ -724,7 +721,7 @@ void APlayerCharacter::ThrowGrenade()
 	AThrowableWeaponBase* Throwable = GetWorld()->SpawnActor<AThrowableWeaponBase>(GrenadeClass, MuzzleLocation, MuzzleRotator, Params);
 	if (Throwable)
 	{
-		Throwable->Throw(ThrowDirVec, GetAttackPower());
+		Throwable->Throw(ThrowDirVec);
 	}
 	SetRemainGrenade(RemainGrenade - 1);
 	UE_LOG(LogTemp, Log, TEXT("Grenade: %d"), RemainGrenade);

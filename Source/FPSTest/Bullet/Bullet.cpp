@@ -5,6 +5,7 @@
 #include "Components/SphereComponent.h"
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "Components/StaticMeshComponent.h"
+#include "Zombie/ZombieBase.h"
 
 // Sets default values
 ABullet::ABullet()
@@ -50,12 +51,13 @@ void ABullet::Fire(FVector DirectionVec, int32 NewAttackPower)
 void ABullet::OnOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
 	// when zombie hit
-	ACharacter* Zombie = Cast<ACharacter>(OtherActor);
+	AZombieBase* Zombie = Cast<AZombieBase>(OtherActor);
 	if (Zombie)
 	{
+		Zombie->OnDamaged(AttackPower);
 		UE_LOG(LogTemp, Log, TEXT("Bullet Hit: %d"), AttackPower);
 	}
 
-	//Destroy();
+	Destroy();
 }
 
